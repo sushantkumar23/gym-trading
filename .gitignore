@@ -1,0 +1,10 @@
+*.DS_Store
+*__pycache__
+*.egg-info
+
+# Python notebooks
+*.ipynb_checkpoints
+*.ipynb
+
+# Data folders
+data
