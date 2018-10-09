@@ -91,7 +91,6 @@ class FXData(object):
         return re_series
 
 
-
     # Downloads the files, if they are not already downloaded
     def download_data(self):
         # Downloading the data
