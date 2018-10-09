@@ -138,7 +138,7 @@ class Tradenv(gym.Env):
     when the agent receives which reward.
     """
 
-    def __init__(self):
+    def __init__(self, spread=0.08):
         self.__version__ = "0.1.0"
         logging.info("Tradenv - Version {}".format(self.__version__))
 
@@ -147,23 +147,18 @@ class Tradenv(gym.Env):
         self.data = self.src.data
         self.series = self.src.series
         self.n = len(self.series)
+        self.spread = spread
 
 
-        self.done = FALSE
+        self.done = False
         self.index = 0
 
         # Define what the agent can do
         self.action_space = spaces.Discrete(3)
+        self.v = 0
 
 
-
-        # Store what the agent tried
-        self.curr_episode = -1
-        self.action_episode_memory = []
-
-    past = 0
-    v = 0
-    def step(self, action), sp:
+    def step(self, action):
         """
         The agent takes a step in the environment.
         Parameters
@@ -171,15 +166,15 @@ class Tradenv(gym.Env):
         action : int
         Returns
         -------
-        ob, reward, episode_over, info : tuple
-            ob (object) :
+        obs, reward, episode_over, info : tuple
+            obs (tuple) :
                 an environment-specific object representing your observation of
                 the environment.
             reward (float) :
                 amount of reward achieved by the previous action. The scale
                 varies between environments, but the goal is always to increase
                 your total reward.
-            episode_over (bool) :
+            done (bool) :
                 whether it's time to reset the environment again. Most (but not
                 all) tasks are divided up into well-defined episodes, and done
                 being True indicates the episode has terminated. (For example,
@@ -195,44 +190,40 @@ class Tradenv(gym.Env):
         assert self.action_space.contains(action)
         if self.done:
             raise ValueError("Please do not call step once the env is done!")
-        if self.index >= self.n :
+        if self.index >= self.n:
             self.done = True
 
         self.index += 1
         print("Action: {}".format(action - 1))
-    # noinspection PyGlobalUndefined
-    global past_v = v
-        v = v + action *  (self.series[self.index] - self.series[self.index - 1]) + sp * abs(action - past)
-        past = action
-        reward = self._get_reward()
-        ob = self._get_observation()
-        return ob, reward, self.done, {}
 
+        diff = self.series[self.index] - self.series[self.index - 1]
+        commission = sp * np.abs(action - self.past_action)
+        self.v_delta = (action * diff) - commission
 
-    def _get_reward(self):
-        """Reward is each trade."""
-        reward = log(self.v/past_v)
-        return(reward)
+        # Rewards are calculated as log returns since log returns are additive
+        reward = log((self.v + self.v_delta)/self.v)
+
+        self.v += self.v_delta
+        self.past_action = action
+
+        obs = self._get_observation()
+        return obs, reward, self.done, {}
+
 
     def reset(self):
         """
         Reset the state of the environment and returns an initial observation.
         Returns
         -------
-        observation (object): the initial observation of the space.
+        observation (tuple): the initial observation of the space.
         """
         self.index = 0
         self.done = False
         return self.get_obs()
 
-    def _render(self, mode='human', close=False):
-        return
-
     def _get_observation(self):
         """Get the observation."""
         stock_price = self.series[self.index]
         time_stamp = self.series.index[self.index]
-        ob = [stock_price ,time_stamp ]
-        return ob
-
-
+        obs = (time_stamp ,stock_price)
+        return obs
