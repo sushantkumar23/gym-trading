@@ -123,41 +123,46 @@ class FXData(object):
 class FXTradingEnv(gym.Env):
     metadata = { 'render.modes': ['human'] }
 
-    def __init__(self, window=8):
+    def __init__(self):
         self.src = FXData()
         self.data = self.src.data
         self.series = self.src.series
-        self.window = window
-        self.n = 96
+        self.n = len(self.series)
 
         self.action_space = spaces.Discrete(3)
-        self.observation_space = Series(self.src.data, self.window)
-
-        self.reset()
+        # self.observation_space = Series(self.src.data)
 
 
+    # Step function returns the latest observation. While, state could be
+    # defined as stacks of observation. State definition should be taken care
+    # of by the agent. An environment just passes the current price of the
+    # stock.
     def step(self, action):
         assert self.action_space.contains(action)
 
         if self.done:
-            raise ValueError("Please do not call step once the env is done!")
+            raise ValueError("Do not call step once the env is done!")
 
         print("Action: {}".format(action))
         self.index += 1
-        obs = self.series[(self.index - self.window):self.index]
-        reward = (action - 1) * (self.data[(self.index - 1)] - self.data[(self.index - 2)])
-        done = False
+        obs = self.get_obs()
+        reward = (action - 1) * (self.data[(self.index)] - self.data[(self.index - 1)])
         info = {}
 
-        print("Index and n: {} and {}".format(self.index, self.n))
-        if (self.index) >= self.n:
+        if self.index >= self.n:
             self.done = True
 
-        return obs, reward, done, info
+        return obs, reward, self.done, info
 
 
+    # Resets the environment
     def reset(self):
-        self.index = self.window
-        obs = self.series[:self.index]
+        self.index = 0
         self.done = False
-        return obs
+        return self.get_obs()
+
+
+    def get_obs(self):
+        stock_price = self.series[self.index]
+        time_stamp = self.series.index[self.index]
+        return (time_stamp, stock_price)
