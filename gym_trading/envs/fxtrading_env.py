@@ -54,7 +54,7 @@ class FXData(object):
 
         print("Pre-processing the data")
         re_series = pd.Series([])
-        for month in range(1, 13):
+        for month in range(1, 3):
 
             MIN_CSV_FILE_NAME = '{}-{}-{:02}-15min.csv'.format(self.symbol, self.year, month)
             MIN_CSV_FILE_PATH = '{}/{}/{:02}/{}'.format(
@@ -94,7 +94,7 @@ class FXData(object):
     # Downloads the files, if they are not already downloaded
     def download_data(self):
         # Downloading the data
-        for month in range(1, 13):
+        for month in range(1, 3):
             FILE_NAME = '{}-{}-{:02}.zip'.format(self.symbol, self.year, month)
             month_name = calendar.month_name[month].upper()
             ZIP_FILE_URL = 'https://www.truefx.com/dev/data/{}/{}-{}/{}'.format(
