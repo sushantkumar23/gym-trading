@@ -73,7 +73,7 @@ class FXData(object):
                 zf = zipfile.ZipFile(FILE_PATH)
                 CSV_FILE = zf.namelist()[0]
                 df = pd.read_csv(zf.open(CSV_FILE),
-                    names = ['Symbol', 'Datetime', 'Bid', 'Ask'], index_col = 1,
+                    names = ['Symbol', 'datetime', 'Bid', 'Ask'], index_col = 1,
                     parse_dates=True
                 )
                 ohlc_df = df['Ask'].resample('15Min').ohlc()
@@ -82,7 +82,7 @@ class FXData(object):
             else:
                 print("Loading the series from the file")
                 series = pd.read_csv(
-                    MIN_CSV_FILE_PATH, parse_dates=True, index_col=0, usecols=['Datetime', 'close'],
+                    MIN_CSV_FILE_PATH, parse_dates=True, index_col=0, usecols=['datetime', 'close'],
                     squeeze=True
                 )
 
