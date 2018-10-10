@@ -3,34 +3,14 @@
 
 "Simulate trading environment"
 
-import logging.config
-import math
-import pkg_resources
-import random
-
-import cfg_load
-import pandas
+import logging
 
 import numpy as np
-
-
 import gym
-from gym import spaces
+from gym import spaces, logger
 
-import pandas as pd
-import requests
-import os
-import calendar
-import zipfile
+from gym_trading.envs.data_src import TrueFXDataSrc
 
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-DATA_FOLDER = "fx_data"
-
-# TrueFX has the following Currency Pairs
-# AUDJPY, AUDNZD, AUDUSD, CADJPY, CHFJPY, EURCHF, EURGBP, EURJPY,
-# EURUSD, GBPJPY, GBPUSD, NZDUSD, USDCAD, USDCHF, USDJPY
 
 class Series(gym.Space):
 
@@ -38,100 +18,14 @@ class Series(gym.Space):
         self.shape = (window,)
 
         # For multiple stocks
-        # self.series = np.vstack([np.array([data[key][i-window:i]for i in range(window, (len(data[key]) + 1))]) for key in list(data.keys())])
+        # self.series = np.vstack([np.array([data[key][i-window:i]for i in
+        # range(window, (len(data[key]) + 1))]) for key in list(data.keys())])
 
     def sample(self):
         return self.series[np.random.randint(len(self.series))]
 
 
-class FXData(object):
-
-    def __init__(self):
-        self.symbol = 'EURUSD'
-        self.year = '2017'
-
-        self.download_data()
-
-
-        self.series = self.preprocess_data()
-        self.data = self.series.values
-        self.n = len(self.data)
-
-
-    # Loads the data from the system to the memory
-    def preprocess_data(self):
-
-
-        print("Pre-processing the data")
-        re_series = pd.Series([])
-        for month in range(1, 3):
-
-            MIN_CSV_FILE_NAME = '{}-{}-{:02}-15min.csv'.format(self.symbol, self.year, month)
-            MIN_CSV_FILE_PATH = '{}/{}/{:02}/{}'.format(
-                DATA_FOLDER, self.year, month, MIN_CSV_FILE_NAME
-            )
-
-            # Checks if the pre-processed file already exists
-            # If not, then creates one and saves it for faster turnaround time.
-            if not os.path.isfile(MIN_CSV_FILE_PATH):
-                FILE_NAME = '{}-{}-{:02}.zip'.format(self.symbol, self.year, month)
-                FILE_PATH = '{}/{}/{:02}/{}'.format(
-                    DATA_FOLDER, self.year, month, FILE_NAME
-                )
-
-                print("Processing the file: {}".format(FILE_PATH))
-                zf = zipfile.ZipFile(FILE_PATH)
-                CSV_FILE = zf.namelist()[0]
-                df = pd.read_csv(zf.open(CSV_FILE),
-                                 names = ['Symbol', 'datetime', 'Bid', 'Ask'], index_col = 1,
-                                 parse_dates=True
-                                 )
-                ohlc_df = df['Ask'].resample('15Min').ohlc()
-                print("Saving the Dataframe to file")
-                ohlc_df.to_csv(MIN_CSV_FILE_PATH)
-            else:
-                print("Loading the series from the file")
-                series = pd.read_csv(
-                    MIN_CSV_FILE_PATH, parse_dates=True, index_col=0, usecols=['datetime', 'close'],
-                    squeeze=True
-                )
-
-                re_series = pd.concat([re_series, series])
-
-        return re_series
-
-
-    # Downloads the files, if they are not already downloaded
-    def download_data(self):
-        # Downloading the data
-        for month in range(1, 3):
-            FILE_NAME = '{}-{}-{:02}.zip'.format(self.symbol, self.year, month)
-            month_name = calendar.month_name[month].upper()
-            ZIP_FILE_URL = 'https://www.truefx.com/dev/data/{}/{}-{}/{}'.format(
-                self.year, month_name, self.year, FILE_NAME)
-
-            DOWNLOAD_FILE_PATH = '{}/{}/{:02}/{}'.format(
-                DATA_FOLDER, self.year, month, FILE_NAME
-            )
-
-            # Check if file already exists
-            if os.path.isfile(DOWNLOAD_FILE_PATH):
-                print("{} file already exists".format(DOWNLOAD_FILE_PATH))
-                continue
-
-            # Check if the folders exists, if not makedirs
-            if not os.path.exists(os.path.dirname(DOWNLOAD_FILE_PATH)):
-                os.makedirs(os.path.dirname(DOWNLOAD_FILE_PATH))
-
-            # Download the file and save it in the right path
-            print("Downloading {}".format(ZIP_FILE_URL))
-            r = requests.get(ZIP_FILE_URL, verify=False)
-            with open(DOWNLOAD_FILE_PATH, 'wb') as f:
-                f.write(r.content)
-
-
-
-class Tradenv(gym.Env):
+class TradeEnv(gym.Env):
     """
     Define a simple trading environment.
     The environment defines which actions can be taken at which point and
@@ -140,23 +34,18 @@ class Tradenv(gym.Env):
 
     def __init__(self, spread=0.08):
         self.__version__ = "0.1.0"
-        logging.info("Tradenv - Version {}".format(self.__version__))
+        logger.info("Tradenv - Version {}".format(self.__version__))
 
         # General variables defining the environment
-        self.src = FXData()
+        self.src = TrueFXDataSrc()
         self.data = self.src.data
         self.series = self.src.series
         self.n = len(self.series)
         self.spread = spread
 
-
-        self.done = False
-        self.index = 0
-
         # Define what the agent can do
         self.action_space = spaces.Discrete(3)
         self.v = 0
-
 
     def step(self, action):
         """
@@ -187,28 +76,43 @@ class Tradenv(gym.Env):
                  use this for learning.
         """
 
+        # Check if the action is valid
         assert self.action_space.contains(action)
+
+        # Check if the env is already done
         if self.done:
-            raise ValueError("Please do not call step once the env is done!")
-        if self.index >= self.n:
-            self.done = True
+            logger.warn(
+                "You are calling 'step()' even though this environment has "
+                "already returned done = True. You should always call "
+                "'reset()' once you receive 'done = True' -- any further "
+                "steps are undefined behavior."
+            )
 
         self.index += 1
-        print("Action: {}".format(action - 1))
 
+        # Get the new Observation
+        obs = self._get_observation()
+
+        # Calculate the reward
         diff = self.series[self.index] - self.series[self.index - 1]
-        commission = sp * np.abs(action - self.past_action)
-        self.v_delta = (action * diff) - commission
-
+        commission = self.spread * np.abs(action - self.past_action)
+        self.v_delta = ((action - 1) * diff) - commission
         # Rewards are calculated as log returns since log returns are additive
-        reward = log((self.v + self.v_delta)/self.v)
+        reward = np.log((self.v + self.v_delta)/self.v)
 
+        # Update the storage variables
         self.v += self.v_delta
         self.past_action = action
 
-        obs = self._get_observation()
-        return obs, reward, self.done, {}
+        # Set and assign done
+        if self.index >= (self.n - 1):
+            self.done = True
+        done = self.done
 
+        # Set info
+        info = {}
+
+        return obs, reward, done, info
 
     def reset(self):
         """
@@ -217,13 +121,16 @@ class Tradenv(gym.Env):
         -------
         observation (tuple): the initial observation of the space.
         """
+
+        # Initialize the episode
         self.index = 0
         self.done = False
-        return self.get_obs()
+        self.past_action = 0
+        return self._get_observation()
 
     def _get_observation(self):
         """Get the observation."""
         stock_price = self.series[self.index]
-        time_stamp = self.series.index[self.index]
-        obs = (time_stamp ,stock_price)
+        timestamp = self.series.index[self.index]
+        obs = (timestamp, stock_price)
         return obs

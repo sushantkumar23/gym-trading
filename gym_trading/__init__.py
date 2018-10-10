@@ -7,5 +7,5 @@ register(
 
 register(
     id='fxtrading-v0',
-    entry_point='gym_trading.envs:FXTradingEnv'
+    entry_point='gym_trading.envs:TradeEnv'
 )
