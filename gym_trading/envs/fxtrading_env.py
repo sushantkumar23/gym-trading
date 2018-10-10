@@ -10,19 +10,6 @@ from gym import spaces, logger
 from gym_trading.envs.data_src import TrueFXDataSrc
 
 
-class Series(gym.Space):
-
-    def __init__(self, data, window):
-        self.shape = (window,)
-
-        # For multiple stocks
-        # self.series = np.vstack([np.array([data[key][i-window:i]for i in
-        # range(window, (len(data[key]) + 1))]) for key in list(data.keys())])
-
-    def sample(self):
-        return self.series[np.random.randint(len(self.series))]
-
-
 class TradeEnv(gym.Env):
     """
     Define a simple trading environment.
@@ -30,9 +17,9 @@ class TradeEnv(gym.Env):
     when the agent receives which reward.
     """
 
-    def __init__(self, spread=0.08):
+    def __init__(self, spread=0):
         self.__version__ = "0.1.0"
-        logger.info("Tradenv - Version {}".format(self.__version__))
+        logger.info("TradeEnv - Version {}".format(self.__version__))
 
         # General variables defining the environment
         self.src = TrueFXDataSrc()
@@ -111,7 +98,9 @@ class TradeEnv(gym.Env):
         done = self.done
 
         # Set info
-        info = {}
+        info = {
+            'return': step_return
+        }
 
         return obs, reward, done, info
 
@@ -120,7 +109,8 @@ class TradeEnv(gym.Env):
         Reset the state of the environment and returns an initial observation.
         Returns
         -------
-        observation (tuple): the initial observation of the space.
+        observation (tuple):
+            the initial observation of the environment.
         """
 
         # Initialize the episode
@@ -130,7 +120,15 @@ class TradeEnv(gym.Env):
         return self._get_observation()
 
     def _get_observation(self):
-        """Get the observation."""
+        """
+        Formats the observation in required manner and returns it.
+        Returns:
+        _______
+        observation (tuple):
+            observation consists of the two items. A Timestamp and an np.float.
+            The timestamp is the current step and the float is the current
+            price of the stock.
+        """
         stock_price = self.series[self.index]
         timestamp = self.series.index[self.index]
         obs = (timestamp, stock_price)
