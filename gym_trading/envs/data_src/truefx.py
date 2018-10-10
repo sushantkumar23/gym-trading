@@ -26,7 +26,8 @@ class TrueFXDataSrc(object):
 
         self.download_data()
 
-        self.series = self.preprocess_data()
+        temp_series = self.preprocess_data()
+        self.series = temp_series.dropna()
         self.data = self.series.values
         self.n = len(self.data)
 
@@ -70,7 +71,6 @@ class TrueFXDataSrc(object):
                 re_series = pd.concat([re_series, series])
 
         return re_series
-
 
     # Downloads the files, if they are not already downloaded
     def download_data(self):

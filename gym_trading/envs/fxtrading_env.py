@@ -96,9 +96,11 @@ class TradeEnv(gym.Env):
 
         # Calculate the reward as log returns of that timestep. Log returns are
         # used instead of aritmetic returns since log returns additive.
-        diff = np.log(self.series[self.index]/self.series[(self.index - 1)])
+        step_return = np.log(
+            self.series[self.index] / self.series[(self.index - 1)]
+        )
         commission = self.spread * np.abs(action - self.past_action)
-        reward = ((action - 1) * diff) - commission
+        reward = ((action - 1) * step_return) - commission
 
         # Update the storage variables
         self.past_action = action
