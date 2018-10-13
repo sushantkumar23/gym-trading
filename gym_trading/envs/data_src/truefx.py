@@ -38,7 +38,9 @@ class TrueFXDataSrc(object):
         re_series = pd.Series([])
         for month in range(1, 3):
 
-            MIN_CSV_FILE_NAME = '{}-{}-{:02}-15min.csv'.format(self.symbol, self.year, month)
+            MIN_CSV_FILE_NAME = '{}-{}-{:02}-15min.csv'.format(
+                self.symbol, self.year, month
+            )
             MIN_CSV_FILE_PATH = '{}/{}/{:02}/{}'.format(
                 DATA_FOLDER, self.year, month, MIN_CSV_FILE_NAME
             )
@@ -46,7 +48,9 @@ class TrueFXDataSrc(object):
             # Checks if the pre-processed file already exists
             # If not, then creates one and saves it for faster turnaround time.
             if not os.path.isfile(MIN_CSV_FILE_PATH):
-                FILE_NAME = '{}-{}-{:02}.zip'.format(self.symbol, self.year, month)
+                FILE_NAME = '{}-{}-{:02}.zip'.format(
+                    self.symbol, self.year, month
+                )
                 FILE_PATH = '{}/{}/{:02}/{}'.format(
                     DATA_FOLDER, self.year, month, FILE_NAME
                 )
