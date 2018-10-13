@@ -17,7 +17,7 @@ class TradeEnv(gym.Env):
     when the agent receives which reward.
     """
 
-    def __init__(self, spread=0):
+    def __init__(self, spread=0.00005):
         self.__version__ = "0.1.0"
         logger.info("TradeEnv - Version {}".format(self.__version__))
 
