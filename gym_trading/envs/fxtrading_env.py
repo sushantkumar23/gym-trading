@@ -5,27 +5,31 @@
 
 import numpy as np
 import gym
-from gym import spaces, logger
+from gym import spaces
+import logging
 
 from gym_trading.envs.data_src import TrueFXDataSrc
+logging.basicConfig(level=logging.INFO)
 
 
 class TradeEnv(gym.Env):
     """
     Define a simple trading environment.
-    The environment defines which actions can be taken at which point and
-    when the agent receives which reward.
+    The environment defines which actions can be taken at which point and when
+    the agent receives which reward.
     """
 
-    def __init__(self, spread=0.00005):
+    def __init__(self, spread=0.00002):
         self.__version__ = "0.1.0"
-        logger.info("TradeEnv - Version {}".format(self.__version__))
+        logging.info("TradeEnv - Version {}".format(self.__version__))
+
+        # Initialising the environment
+        logging.info("spread: {}".format(spread))
 
         # General variables defining the environment
         self.src = TrueFXDataSrc()
         self.data = self.src.data
-        self.series = self.src.series
-        self.n = len(self.series)
+        self.n = len(self.data)
         self.spread = spread
 
         # Define what the agent can do
@@ -46,7 +50,8 @@ class TradeEnv(gym.Env):
         obs, reward, episode_over, info : tuple
             obs (tuple) :
                 an environment-specific object representing your observation of
-                the environment.
+                the environment. In this case, it is a tuple of the timestamp,
+                the close price and the volume traded in that interval.
             reward (float) :
                 amount of reward achieved by the previous action. The scale
                 varies between environments, but the goal is always to increase
@@ -69,7 +74,7 @@ class TradeEnv(gym.Env):
 
         # Check if the env is already done
         if self.done:
-            logger.warn(
+            logging.warn(
                 "You are calling 'step()' even though this environment has "
                 "already returned done = True. You should always call "
                 "'reset()' once you receive 'done = True' -- any further "
@@ -84,7 +89,7 @@ class TradeEnv(gym.Env):
         # Calculate the reward as log returns of that timestep. Log returns are
         # used instead of aritmetic returns since log returns additive.
         step_return = np.log(
-            self.series[self.index] / self.series[(self.index - 1)]
+            self.data['close'][self.index] / self.data['close'][(self.index-1)]
         )
         commission = self.spread * np.abs(action - self.past_action)
         reward = ((action - 1) * step_return) - commission
@@ -125,11 +130,12 @@ class TradeEnv(gym.Env):
         Returns:
         _______
         observation (tuple):
-            observation consists of the two items. A Timestamp and an np.float.
-            The timestamp is the current step and the float is the current
-            price of the stock.
+            observation consists of the three items. A Timestamp,
+            np.float64 and an np.int64. The timestamp is the current step, the
+            float is the current close price and the int is the volume.
         """
-        stock_price = self.series[self.index]
-        timestamp = self.series.index[self.index]
-        obs = (timestamp, stock_price)
+        stock_price = self.data['close'][self.index]
+        volume = self.data['volume'][self.index]
+        timestamp = self.data.index[self.index]
+        obs = (timestamp, stock_price, volume)
         return obs

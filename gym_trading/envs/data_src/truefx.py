@@ -26,17 +26,15 @@ class TrueFXDataSrc(object):
 
         self.download_data()
 
-        temp_series = self.preprocess_data()
-        self.series = temp_series.dropna()
-        self.data = self.series.values
-        self.n = len(self.data)
+        temp_data = self.preprocess_data()
+        self.data = temp_data.dropna()
 
     # Loads the data from the system to the memory
     def preprocess_data(self):
 
         print("Pre-processing the data")
-        re_series = pd.Series([])
-        for month in range(1, 3):
+        final_df = pd.DataFrame([])
+        for month in range(1, 4):
 
             MIN_CSV_FILE_NAME = '{}-{}-{:02}-15min.csv'.format(
                 self.symbol, self.year, month
@@ -58,32 +56,38 @@ class TrueFXDataSrc(object):
                 print("Processing the file: {}".format(FILE_PATH))
                 zf = zipfile.ZipFile(FILE_PATH)
                 CSV_FILE = zf.namelist()[0]
-                df = pd.read_csv(zf.open(CSV_FILE),
-                                 names=['Symbol', 'datetime', 'Bid', 'Ask'],
-                                 index_col=1, parse_dates=True
-                                 )
-                ohlc_df = df['Ask'].resample('15Min').ohlc()
+                raw_df = pd.read_csv(
+                    zf.open(CSV_FILE),
+                    names=['Symbol', 'datetime', 'Bid', 'Ask'],
+                    index_col=1, parse_dates=True)
+
+                ohlc_df = raw_df['Ask'].resample('15Min').ohlc()
+                ohlc_df['volume'] = raw_df['Ask'].resample('15Min').count()
                 print("Saving the Dataframe to file")
                 ohlc_df.to_csv(MIN_CSV_FILE_PATH)
+
+                df = ohlc_df[['close', 'volume']]
             else:
-                print("Loading the series from the file")
-                series = pd.read_csv(
+                print("Loading the series from {}".format(MIN_CSV_FILE_PATH))
+                df = pd.read_csv(
                     MIN_CSV_FILE_PATH, parse_dates=True, index_col=0,
-                    usecols=['datetime', 'close'], squeeze=True
+                    usecols=['datetime', 'close', 'volume']
                 )
 
-                re_series = pd.concat([re_series, series])
+            # Append this df to the final_df
+            final_df = pd.concat([final_df, df])
 
-        return re_series
+        return final_df
 
     # Downloads the files, if they are not already downloaded
     def download_data(self):
         # Downloading the data
-        for month in range(1, 3):
+        for month in range(1, 4):
             FILE_NAME = '{}-{}-{:02}.zip'.format(self.symbol, self.year, month)
             month_name = calendar.month_name[month].upper()
             ZIP_FILE_URL = 'https://www.truefx.com/dev/data/{}/{}-{}/{}'.format(
-                self.year, month_name, self.year, FILE_NAME)
+                    self.year, month_name, self.year, FILE_NAME
+                )
 
             DOWNLOAD_FILE_PATH = '{}/{}/{:02}/{}'.format(
                 DATA_FOLDER, self.year, month, FILE_NAME
