@@ -8,7 +8,7 @@ import gym
 from gym import spaces
 import logging
 
-from gym_trading.envs.data_src import TrueFXDataSrc
+from gym_trading.envs.data_src import TrueFXData
 logging.basicConfig(level=logging.INFO)
 
 
@@ -112,10 +112,8 @@ class TradeEnv(gym.Env):
     def reset(self):
         """
         Reset the state of the environment and returns an initial observation.
-        Returns
-        -------
-        observation (tuple):
-            the initial observation of the environment.
+        Returns:
+            observation (tuple): the initial observation of the environment.
         """
 
         # Initialize the episode
