@@ -99,7 +99,7 @@ class TradeEnv(gym.Env):
         self.index += 1
 
         # Get the new Observation
-        obs = self._get_observation()
+        obs = self._get_observation(self.index)
 
         # Calculate the reward as log returns of that timestep. Log returns are
         # used instead of aritmetic returns since log returns additive.
@@ -135,9 +135,9 @@ class TradeEnv(gym.Env):
         self.index = 0
         self.done = False
         self.past_action = 0
-        return self._get_observation()
+        return self._get_observation(self.index)
 
-    def _get_observation(self):
+    def _get_observation(self, index):
         """
         Formats the observation in required manner and returns it.
         Returns:
@@ -147,8 +147,8 @@ class TradeEnv(gym.Env):
             np.float64 and an np.int64. The timestamp is the current step, the
             float is the current close price and the int is the volume.
         """
-        stock_price = self.data['close'][self.index]
-        volume = self.data['volume'][self.index]
-        timestamp = self.data.index[self.index]
+        stock_price = self.data['close'][index]
+        volume = self.data['volume'][index]
+        timestamp = self.data.index[index]
         obs = (timestamp, stock_price, volume)
         return obs
