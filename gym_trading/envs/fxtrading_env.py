@@ -19,7 +19,13 @@ class TradeEnv(gym.Env):
     the agent receives which reward.
     """
 
-    def __init__(self, spread=0.00002):
+    def __init__(
+        self,
+        spread=0.000008,
+        start_date="2012-01-01",
+        end_date="2012-12-31"
+    ):
+
         self.__version__ = "0.1.0"
         logging.info("TradeEnv - Version {}".format(self.__version__))
 
@@ -27,13 +33,22 @@ class TradeEnv(gym.Env):
         logging.info("spread: {}".format(spread))
 
         # General variables defining the environment
-        self.src = TrueFXDataSrc()
+        self.start_date = start_date
+        self.end_date = end_date
+        self.src = TrueFXData(
+            start_date=self.start_date,
+            end_date=self.end_date)
         self.data = self.src.data
         self.n = len(self.data)
         self.spread = spread
 
         # Define what the agent can do
         self.action_space = spaces.Discrete(3)
+
+        logging.info("Env initialised with data from {} to {}".format(
+            self.start_date,
+            self.end_date
+        ))
 
     # Step function returns the latest observation. While, state could be
     # defined as stacks of observation. State definition should be taken care
