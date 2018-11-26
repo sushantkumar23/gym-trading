@@ -23,7 +23,7 @@ class TradeEnv(gym.Env):
         self,
         symbol,
         start_date="2012-01-01",
-        end_date="2017-12-31"
+        end_date="2017-12-31",
         spread=0.000008):
 
         self.__version__ = "0.1.0"
