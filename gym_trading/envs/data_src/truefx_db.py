@@ -38,9 +38,9 @@ class TrueFXData(object):
         conn = psycopg2.connect(DATABASE_URL)
         cur = conn.cursor()
         cur.execute(
-            """SELECT * FROM EURUSD \
+            """SELECT * FROM {} \
             WHERE datetime >= (%s) \
-            AND datetime < (%s);""",
+            AND datetime < (%s);""".format(self.symbol),
             (self.start_date, self.end_date))
         results = cur.fetchall()
         cur.close()
@@ -51,5 +51,7 @@ class TrueFXData(object):
             columns=['datetime', 'open', 'high', 'low', 'close', 'volume'],
             index='datetime',
             coerce_float=True)
+
+        df.sort_index(inplace=True)
 
         return df

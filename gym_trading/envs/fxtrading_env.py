@@ -21,9 +21,10 @@ class TradeEnv(gym.Env):
 
     def __init__(
         self,
-        spread=0.000008,
+        symbol,
         start_date="2012-01-01",
-        end_date="2012-12-31"
+        end_date="2017-12-31"
+        spread=0.000008,
     ):
 
         self.__version__ = "0.1.0"
@@ -33,9 +34,11 @@ class TradeEnv(gym.Env):
         logging.info("spread: {}".format(spread))
 
         # General variables defining the environment
+        self.symbol = symbol
         self.start_date = start_date
         self.end_date = end_date
         self.src = TrueFXData(
+            symbol=self.symbol,
             start_date=self.start_date,
             end_date=self.end_date)
         self.data = self.src.data
