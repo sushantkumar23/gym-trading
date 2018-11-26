@@ -24,8 +24,7 @@ class TradeEnv(gym.Env):
         symbol,
         start_date="2012-01-01",
         end_date="2017-12-31"
-        spread=0.000008,
-    ):
+        spread=0.000008):
 
         self.__version__ = "0.1.0"
         logging.info("TradeEnv - Version {}".format(self.__version__))
